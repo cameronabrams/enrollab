@@ -74,6 +74,7 @@ class University:
 NUM_STUDENTS = 700
 NUM_UNIVERSITIES = 15
 
+
 students = [Student(
     id=f"S{i}",
     score=random.gauss(1000, 100),
