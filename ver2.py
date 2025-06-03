@@ -87,24 +87,28 @@ class Simulation:
         self.universities = []
         self.num_students = num_students
         self.num_universities = num_universities
-        self.setup_students()
-        self.setup_universities()
+
     def setup_students(self):
         for i in range(self.num_students):
             base_score = np.clip(random.gauss(1000, 100), 0, 1600)  # Score between 0 and 1600
             efc = np.clip(random.gauss(30, 30), 0, 100)  # Expected Family Contribution ($k)
             # Slight downward adjustment to score based on higher efc
             adjusted_score = base_score + (efc - 30) * random.uniform(0.6, 1.0)
-            adjusted_score = max(600, min(1600, adjusted_score))  # clamp to reasonable range
+            adjusted_score = int(max(600, min(1600, adjusted_score)))  # clamp to reasonable range
             student = Student(id=f"S{i}", score=adjusted_score, efc=efc, noise=random.uniform(0.05, 0.15))
             self.students.append(student)
+        print(f"Created {len(self.students)} students with scores ranging from "
+              f"{min(s.score for s in self.students)} to {max(s.score for s in self.students)} and EFCs from "
+              f"{min(s.efc for s in self.students)} to {max(s.efc for s in self.students)}")
     def setup_universities(self):
-        cost_references = np.linspace(10, 80, int(np.sqrt(self.num_universities)))
-        prestige_references = np.linspace(0.5, 1.0, int(np.sqrt(self.num_universities)))
+        cost_references = np.linspace(10, 80, self.num_universities)
+        prestige_references = np.linspace(0.5, 1.0, self.num_universities)
         for i, (c, p) in enumerate(product(cost_references, prestige_references)):
             capacity = int(np.clip(200 - 50 * (c - 40) / 40 + random.gauss(0, 30), 50, 300))
             uni = University(id=f"U{i}", prestige=p, cost=int(c), capacity=capacity)
             self.universities.append(uni)
+        print(f"Created {len(self.universities)} universities with capacities ranging from "
+              f"{min(u.capacity for u in self.universities)} to {max(u.capacity for u in self.universities)}")
     def apply(self):
         for student in self.students:
             ranked_unis = sorted(self.universities, key=student.app_utility, reverse=True)
@@ -189,7 +193,7 @@ class Simulation:
                     markerfacecolor=color_map[uid], markersize=8, markeredgecolor='k')
                     for uid in uni_ids]
         plt.legend(handles=handles, title="University", bbox_to_anchor=(1.05, 1), loc='upper left')
-        plt.savefig('aid_v_need_offers.png',bbox_inches='tight')
+        plt.savefig('aid_v_need.png',bbox_inches='tight')
         plt.close('all')
 
     def university_plots(self):
@@ -251,10 +255,11 @@ class Simulation:
         plt.grid(True)
         plt.tight_layout()
         plt.savefig("bubble_applicants_offers_enrollments_aid.png")
+        plt.close('all')
 
 # --- Setup ---
 NUM_STUDENTS = 4000
-NUM_UNIVERSITIES = 20
+NUM_UNIVERSITIES = 5
 simulation = Simulation(NUM_STUDENTS, NUM_UNIVERSITIES)
 simulation.setup_universities()
 simulation.setup_students()
