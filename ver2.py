@@ -169,8 +169,9 @@ class Simulation:
         x_need = []
         y_aid = []
         colors = []
-
+        num_apps=[]
         for student in self.students:
+            num_apps.append(student.num_apps)
             if student.enrolled_at:
                 uni = student.enrolled_at
                 need = max(0, uni.cost - student.efc)
@@ -194,6 +195,16 @@ class Simulation:
                     for uid in uni_ids]
         plt.legend(handles=handles, title="University", bbox_to_anchor=(1.05, 1), loc='upper left')
         plt.savefig('aid_v_need.png',bbox_inches='tight')
+
+        plt.figure(figsize=(8, 6))
+        plt.scatter(num_apps, scores, alpha=0.6, edgecolors='k')
+        plt.xlabel("Number of Applications Submitted")
+        plt.ylabel("Student Score")
+        plt.title("Student Score vs Number of Applications Submitted")
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig('score_vs_apps.png')
+
         plt.close('all')
 
     def university_plots(self):
