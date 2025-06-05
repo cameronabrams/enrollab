@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt 
 import numpy as np
+
 class Student:
     def __init__(self, id, score, efc, noise):
         self.id = id
@@ -18,7 +19,10 @@ class Student:
         self.enrolled_at = None
 
     def expected_net_cost(self,u):
-        est_aid = min(u.cost, max(0, (self.score - 800) / 400 * u.cost))
+        if self.efc>u.cost:
+            est_aid = min(u.cost, max(0, (self.score - 800) / 400 * u.cost))
+        else:
+            est_aid = max(0, u.cost - self.efc)
         return u.cost - est_aid
 
     def app_utility(self,u):
@@ -50,7 +54,7 @@ class University:
         self.applicants = []
         self.enrolled_students = []
         self.num_applicants=0
-
+    
     def reset(self):
         self.applicants = []
         self.enrolled_students = []
@@ -60,16 +64,15 @@ class University:
         self.applicants.append(student)
         self.num_applicants += 1
 
-    def admit(self):
+    def admit(self): # baseline university behavior, only admit based on capacity, score, and aid is only need-based
         self.applicants.sort(key=lambda s: s.score, reverse=True)
-        overbook_factor = 1.5
-        admits = self.applicants[:int(self.capacity * overbook_factor)]
+        admits = self.applicants[:int(self.capacity)]
         for student in admits:
             # Offer merit-based aid: scaled by how strong the score is
-            merit_factor = (student.score - 800) / 400  # range roughly -0.5 to +0.75
+            # merit_factor = (student.score - 800) / 400  # range roughly -0.5 to +0.75
             need = max(0, self.cost - student.efc)
-            merit_aid = self.cost * merit_factor
-            aid = max(0, min(self.cost, int(min(need, merit_aid))))
+            # merit_aid = self.cost * merit_factor
+            aid = max(0, min(self.cost, need)) #int(min(need, merit_aid))))
             student.aid_offers[self.id] = aid
             student.offers.append(self)
         self.applicants.clear()
@@ -80,13 +83,14 @@ class University:
             return True
         return False
 
-
 class Simulation:
-    def __init__(self, num_students, num_universities):
+    def __init__(self, num_students=1000, num_publics=20, num_privates=5, num_states=1):
         self.students = []
         self.universities = []
         self.num_students = num_students
-        self.num_universities = num_universities
+        self.num_universities = num_publics + num_privates
+        self.frac_privates = num_privates / self.num_universities
+        self.num_states = num_states
 
     def setup_students(self):
         for i in range(self.num_students):
@@ -100,9 +104,20 @@ class Simulation:
         print(f"Created {len(self.students)} students with scores ranging from "
               f"{min(s.score for s in self.students)} to {max(s.score for s in self.students)} and EFCs from "
               f"{min(s.efc for s in self.students)} to {max(s.efc for s in self.students)}")
+
     def setup_universities(self):
-        cost_references = np.linspace(10, 80, self.num_universities)
-        prestige_references = np.linspace(0.5, 1.0, self.num_universities)
+        for i in range(self.num_universities):
+            prestige = random.uniform(0.5, 1.0) 
+            x=random.uniform(0,1)
+            pop='public'
+            cost = np.clip(int(random.gauss(80, 10),60,100))
+            if x<self.frac_privates:
+                cost = np.clip(int(random.gauss(80, 10),60,100))
+                pop='private'
+
+    def setup_universities_regular_grid(self):
+        cost_references = np.linspace(10, 80, int(np.sqrt(self.num_universities)))
+        prestige_references = np.linspace(0.5, 1.0, int(np.sqrt(self.num_universities)))
         for i, (c, p) in enumerate(product(cost_references, prestige_references)):
             capacity = int(np.clip(200 - 50 * (c - 40) / 40 + random.gauss(0, 30), 50, 300))
             uni = University(id=f"U{i}", prestige=p, cost=int(c), capacity=capacity)
@@ -269,8 +284,8 @@ class Simulation:
         plt.close('all')
 
 # --- Setup ---
-NUM_STUDENTS = 4000
-NUM_UNIVERSITIES = 5
+NUM_STUDENTS = 5000
+NUM_UNIVERSITIES = 25
 simulation = Simulation(NUM_STUDENTS, NUM_UNIVERSITIES)
 simulation.setup_universities()
 simulation.setup_students()
